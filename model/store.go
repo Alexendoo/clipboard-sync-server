@@ -10,10 +10,6 @@ type Store struct {
 	db *sql.DB
 }
 
-type UserStore interface {
-	AddUser(user *User) error
-}
-
 func OpenStore(path string) (store *Store, err error) {
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
@@ -28,7 +24,7 @@ WHERE type='table' AND name='config'
 	rows.Close()
 
 	if dbExists {
-		return &Store{db}, nil
+		return &Store{db}, err
 	}
 
 	tx, err := db.Begin()
@@ -38,34 +34,43 @@ WHERE type='table' AND name='config'
 	defer tx.Rollback()
 
 	_, err = tx.Exec(`
-CREATE TABLE IF NOT EXISTS config (
-	id INTEGER PRIMARY KEY CHECK (id = 0) DEFAULT 0,
-	version INTEGER DEFAULT 0
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE config (
+	version INTEGER PRIMARY KEY
 );
 
-INSERT INTO config DEFAULT VALUES;
+INSERT INTO config (version)
+VALUES (0);
 
-CREATE TABLE IF NOT EXISTS users (
+
+CREATE TABLE users (
 	id INTEGER PRIMARY KEY,
 
-	name STRING COLLATE NOCASE,
-
-	pass_version INTEGER,
+	username STRING COLLATE NOCASE,
+	pass_key BLOB,
 	pass_salt BLOB,
-	pass_key BLOB
+	pass_version INTEGER
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS ux_users_name
-ON users (name COLLATE NOCASE);
+CREATE UNIQUE INDEX ux_users_username
+ON users (username COLLATE NOCASE);
+
+
+CREATE TABLE devices (
+	id INTEGER PRIMARY KEY,
+	auth_key BLOB NOT NULL,
+	userid INTEGER NOT NULL,
+
+	FOREIGN KEY (userid) REFERENCES users (id)
+);
+
+CREATE INDEX ix_devices_userid
+ON devices (userid);
 `)
 	if err != nil {
 		return
 	}
 
 	return &Store{db}, tx.Commit()
-}
-
-func (s *Store) AddUser(user *User) error {
-
-	return nil
 }

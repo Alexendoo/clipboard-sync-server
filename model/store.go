@@ -6,40 +6,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-type Store struct {
-	db    *sql.DB
-	stmts *stmts
-}
-
-type stmts struct {
-	addUser *sql.Stmt
-	getUser *sql.Stmt
-}
-
-func OpenStore(path string) (*Store, error) {
-	db, err := sql.Open("sqlite3", path)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := db.Query(`
-SELECT name FROM sqlite_master
-WHERE type='table' AND name='config'
-`)
-	dbExists := rows.Next()
-	rows.Close()
-
-	if !dbExists {
-		initialiseDB(db)
-	}
-
-	stmts, err := prepareStmts(db)
-
-	return &Store{db, stmts}, err
-}
-
-func initialiseDB(db *sql.DB) error {
-	_, err := db.Exec(`
+const schema = `
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE config (
@@ -73,7 +40,42 @@ CREATE TABLE devices (
 
 CREATE INDEX ix_devices_userid
 ON devices (userid);
+`
+
+type Store struct {
+	db    *sql.DB
+	stmts *stmts
+}
+
+type stmts struct {
+	addUser *sql.Stmt
+	getUser *sql.Stmt
+}
+
+func OpenStore(path string) (*Store, error) {
+	db, err := sql.Open("sqlite3", path)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := db.Query(`
+SELECT name FROM sqlite_master
+WHERE type='table' AND name='config'
 `)
+	dbExists := rows.Next()
+	rows.Close()
+
+	if !dbExists {
+		initialiseDB(db)
+	}
+
+	stmts, err := prepareStmts(db)
+
+	return &Store{db, stmts}, err
+}
+
+func initialiseDB(db *sql.DB) error {
+	_, err := db.Exec(schema)
 	return err
 }
 

@@ -7,13 +7,19 @@ import (
 )
 
 type Store struct {
-	db *sql.DB
+	db    *sql.DB
+	stmts *stmts
 }
 
-func OpenStore(path string) (store *Store, err error) {
+type stmts struct {
+	addUser *sql.Stmt
+	getUser *sql.Stmt
+}
+
+func OpenStore(path string) (*Store, error) {
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	rows, err := db.Query(`
@@ -23,17 +29,17 @@ WHERE type='table' AND name='config'
 	dbExists := rows.Next()
 	rows.Close()
 
-	if dbExists {
-		return &Store{db}, err
+	if !dbExists {
+		initialiseDB(db)
 	}
 
-	tx, err := db.Begin()
-	if err != nil {
-		return
-	}
-	defer tx.Rollback()
+	stmts, err := prepareStmts(db)
 
-	_, err = tx.Exec(`
+	return &Store{db, stmts}, err
+}
+
+func initialiseDB(db *sql.DB) error {
+	_, err := db.Exec(`
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE config (
@@ -68,9 +74,24 @@ CREATE TABLE devices (
 CREATE INDEX ix_devices_userid
 ON devices (userid);
 `)
+	return err
+}
+
+func prepareStmts(db *sql.DB) (statements *stmts, err error) {
+	addUser, err := db.Prepare(addUserSQL)
 	if err != nil {
 		return
 	}
 
-	return &Store{db}, tx.Commit()
+	getUser, err := db.Prepare(getUserSQL)
+	if err != nil {
+		return
+	}
+
+	statements = &stmts{
+		addUser,
+		getUser,
+	}
+
+	return
 }

@@ -9,13 +9,12 @@ type User struct {
 	PassVersion int
 }
 
-func (s *Store) AddUser(user *User) error {
-	const addUserSQL = `
+const addUserSQL = `
 INSERT INTO users (id, username, pass_key, pass_salt, pass_version)
 VALUES (?, ?, ?, ?, ?)`
 
-	_, err := s.db.Exec(
-		addUserSQL,
+func (s *Store) AddUser(user *User) error {
+	_, err := s.stmts.addUser.Exec(
 		user.ID,
 		user.Name,
 		user.PassKey,
@@ -26,14 +25,14 @@ VALUES (?, ?, ?, ?, ?)`
 	return err
 }
 
-func (s *Store) GetUser(id int64) (*User, error) {
-	const getUserSQL = `
+const getUserSQL = `
 SELECT id, username, pass_key, pass_salt, pass_version
 FROM users WHERE id = ?`
 
+func (s *Store) GetUser(id int64) (*User, error) {
 	var user User
 
-	err := s.db.QueryRow(getUserSQL, id).Scan(
+	err := s.stmts.getUser.QueryRow(id).Scan(
 		&user.ID,
 		&user.Name,
 		&user.PassKey,

@@ -2,11 +2,11 @@ package main
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
+	"log"
 )
 
 func register(w http.ResponseWriter, r *http.Request) {

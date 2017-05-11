@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Alexendoo/sync/model"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/dgrijalva/jwt-go/request"
 	"github.com/urfave/negroni"
@@ -31,11 +30,5 @@ func Authenticate(secret []byte) negroni.HandlerFunc {
 			http.Error(w, "Authorization failed", http.StatusUnauthorized)
 			log.Println(err)
 		}
-	}
-}
-
-func Register(secret []byte, store model.UserStore) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
 	}
 }

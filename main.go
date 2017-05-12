@@ -1,14 +1,14 @@
 package main
 
-//go:generate sqlboiler postgres
+//go:generate retool do sqlboiler postgres
 
 import (
 	"io"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
-	"log"
 )
 
 func register(w http.ResponseWriter, r *http.Request) {

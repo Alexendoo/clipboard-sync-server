@@ -1,5 +1,7 @@
 package main
 
+//go:generate retool do sqlboiler postgres
+
 import (
 	"io"
 	"log"

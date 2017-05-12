@@ -1,0 +1,8 @@
+no-hooks = true
+
+[postgres]
+dbname = "sync"
+host = "localhost"
+user = "devel"
+pass = "devel"
+sslmode = "disable"

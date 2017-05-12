@@ -1,5 +1,7 @@
 package main
 
+//go:generate sqlboiler postgres
+
 import (
 	"io"
 	"net/http"

@@ -1,9 +1,0 @@
-{
-  "Tools": [
-    {
-      "Repository": "github.com/vattle/sqlboiler",
-      "Commit": "17f2ec510841fe07fa3ead5755ad0e2c9cdfaa6e"
-    }
-  ],
-  "RetoolVersion": "1.3.1"
-}

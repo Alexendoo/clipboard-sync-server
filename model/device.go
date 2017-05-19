@@ -6,19 +6,15 @@ type Device struct {
 	kallax.Model `table:"devices"`
 	ID           kallax.ULID `pk:""`
 
-	Name       string
-	DeviceType string
+	Name string
 
-	User *User `fk:"user_id,inverse"`
+	User *User `fk:"user_id,inverse" json:"-"`
 }
 
-func newDevice(name, deviceType string, user *User) *Device {
+func newDevice(name string, user *User) *Device {
 	return &Device{
-		ID: kallax.NewULID(),
-
-		Name:       name,
-		DeviceType: deviceType,
-
+		ID:   kallax.NewULID(),
+		Name: name,
 		User: user,
 	}
 }

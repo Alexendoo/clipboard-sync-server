@@ -1,4 +1,4 @@
-DROP TABLE sigchain;
+-- DROP TABLE sigchain;
 DROP TABLE devices;
 DROP TABLE users;
-DROP TYPE DEVICE_TYPE;
+-- DROP TYPE DEVICE_TYPE;

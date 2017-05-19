@@ -5,21 +5,22 @@ import (
 	"testing"
 )
 
-func TestNewUser(t *testing.T) {
+func TestNewDevice(t *testing.T) {
 	db := openDb()
 
-	userStore := NewUserStore(db)
+	userStore := NewUserStore(db).Debug()
 	u := NewUser()
 
 	log.Println(userStore.Insert(u))
 
 	uq := NewUserQuery().FindByID(u.ID)
-	res, _ := userStore.FindOne(uq)
+	res, err := userStore.FindOne(uq)
 
 	log.Printf("res: %#+v\n", res)
+	log.Printf("err: %#+v\n", err)
 
 	deviceStore := NewDeviceStore(db)
-	d := NewDevice("moo", "chrome", u)
+	d := NewDevice("moo", u)
 
 	log.Println(deviceStore.Insert(d))
 }

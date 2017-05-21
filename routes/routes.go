@@ -17,8 +17,8 @@ var (
 func Handler(db *sql.DB) http.Handler {
 	router := mux.NewRouter()
 
-	devices = model.NewDeviceStore(db)
-	users = model.NewUserStore(db)
+	devices = model.NewDeviceStore(db).Debug()
+	users = model.NewUserStore(db).Debug()
 
 	router.HandleFunc("/register", Register).
 		Methods(http.MethodPost)

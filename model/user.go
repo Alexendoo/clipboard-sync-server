@@ -1,14 +1,17 @@
 package model
 
-import kallax "gopkg.in/src-d/go-kallax.v1"
+import (
+	kallax "gopkg.in/src-d/go-kallax.v1"
+	"github.com/oklog/ulid"
+)
 
 type User struct {
 	kallax.Model `table:"users"`
-	ID           kallax.ULID `pk:""`
+	ID ulid.ULID `pk:""`
 }
 
 func newUser() *User {
 	return &User{
-		ID: kallax.NewULID(),
+		ID: NewULID(),
 	}
 }

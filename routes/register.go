@@ -9,7 +9,8 @@ import (
 )
 
 type registrationRequest struct {
-	Name string
+	Name  string
+	Token string
 }
 
 type registrationResponse struct {
@@ -27,13 +28,13 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 	var req registrationRequest
 	err = json.Unmarshal(bytes, &req)
-	if err != nil || req.Name == "" {
+	if err != nil || req.Name == "" || req.Token == "" {
 		badRequest(w)
 		return
 	}
 
 	user := model.NewUser()
-	device := model.NewDevice(req.Name, user)
+	device := model.NewDevice(req.Name, req.Token, user)
 
 	err = users.Insert(user)
 	if err != nil {

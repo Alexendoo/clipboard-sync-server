@@ -5,11 +5,12 @@ CREATE TABLE users (
 -- CREATE TYPE DEVICE_TYPE AS ENUM ('chrome', 'android');
 
 CREATE TABLE devices (
-  id          UUID PRIMARY KEY,
+  id        UUID PRIMARY KEY,
 
-  name        VARCHAR(80) NOT NULL,
+  name      TEXT NOT NULL,
+  fcm_token TEXT NOT NULL,
 
-  user_id     UUID        NOT NULL REFERENCES users
+  user_id   UUID NOT NULL REFERENCES users
 );
 
 -- CREATE TABLE sigchain (

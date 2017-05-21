@@ -1,20 +1,28 @@
 package model
 
-import kallax "gopkg.in/src-d/go-kallax.v1"
+import (
+	"github.com/oklog/ulid"
+	"database/sql"
+)
 
 type Device struct {
-	kallax.Model `table:"devices"`
-	ID           kallax.ULID `pk:""`
+	ID ulid.ULID
 
-	Name string
+	Name     string
+	FCMToken string
 
-	User *User `fk:"user_id,inverse" json:"-"`
+	UserID ulid.ULID
 }
 
-func newDevice(name string, user *User) *Device {
+func NewDevice(name, token string, userID ulid.ULID) *Device {
 	return &Device{
-		ID:   kallax.NewULID(),
-		Name: name,
-		User: user,
+		ID:       NewULID(),
+		Name:     name,
+		FCMToken: token,
+		UserID:   userID,
 	}
+}
+
+func (d *Device) Save(db *sql.DB) {
+
 }

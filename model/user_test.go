@@ -20,6 +20,28 @@ func TestFindUser(t *testing.T) {
 	}
 }
 
+func TestUserExists(t *testing.T) {
+	db := pg()
+	u := NewUser()
+	u.Save(db)
+
+	exists, err := UserExists(db, u.ID)
+	if !exists {
+		t.Errorf("!exists")
+	}
+	if err != nil {
+		t.Errorf("UserExists() error - %v", err)
+	}
+
+	exists, err = UserExists(db, "_")
+	if exists {
+		t.Errorf("exists")
+	}
+	if err != nil {
+		t.Errorf("UserExists() error - %v", err)
+	}
+}
+
 func TestUser_Save(t *testing.T) {
 	db := pg()
 	u := NewUser()

@@ -24,6 +24,18 @@ func FindUser(db *sql.DB, id string) (*User, error) {
 	return &User{ID}, err
 }
 
+// UserExists is a lightweight check to see if a User with a given ID
+// is stored in the database
+func UserExists(db *sql.DB, id string) (bool, error) {
+	row := db.QueryRow(
+		"SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)",
+		id,
+	)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 // Save the User into the database
 func (u *User) Save(db *sql.DB) error {
 	_, err := db.Exec(

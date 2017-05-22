@@ -4,6 +4,7 @@ import (
 	"database/sql"
 )
 
+// Device is a data model of a users device (browser extension, mobile app)
 type Device struct {
 	ID       string
 	Name     string
@@ -11,6 +12,7 @@ type Device struct {
 	UserID   string
 }
 
+// NewDevice returns a new instance of Device
 func NewDevice(name, token, userID string) *Device {
 	return &Device{
 		ID:       NewULID(),
@@ -20,6 +22,7 @@ func NewDevice(name, token, userID string) *Device {
 	}
 }
 
+// FindDevice finds the Device from the database with the provided ID
 func FindDevice(db *sql.DB, id string) (*Device, error) {
 	row := db.QueryRow("SELECT * FROM devices WHERE id = $1", id)
 	var (
@@ -33,6 +36,7 @@ func FindDevice(db *sql.DB, id string) (*Device, error) {
 	return &Device{ID, Name, FCMToken, UserID}, err
 }
 
+// Save the Device into the database
 func (d *Device) Save(db *sql.DB) error {
 	_, err := db.Exec(
 		"INSERT INTO devices VALUES ($1, $2, $3, $4)",
@@ -44,6 +48,7 @@ func (d *Device) Save(db *sql.DB) error {
 	return err
 }
 
+// Delete the Device entry from the database
 func (d *Device) Delete(db *sql.DB) error {
 	_, err := db.Exec(
 		"DELETE FROM devices WHERE id = $1",

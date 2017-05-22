@@ -4,25 +4,46 @@ import (
 	"database/sql"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"encoding/json"
+
+	"github.com/gorilla/pat"
+	"github.com/urfave/negroni"
 )
 
 var db *sql.DB
 
 // Handler for all the application routes
 func Handler(_db *sql.DB) http.Handler {
-	router := mux.NewRouter()
+	router := pat.New()
 
 	db = _db
 
-	router.HandleFunc("/register", Register).
-		Methods(http.MethodPost)
+	n := negroni.New()
 
-	return router
+	router.Post("/user", RegisterUser)
+	router.Post("/device", RegisterDevice)
+
+	n.UseFunc(jsonHeader)
+	n.UseHandler(router)
+	n.Use(negroni.NewLogger())
+
+	return n
+}
+
+func jsonHeader(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	w.Header().Set("Content-Type", "application/json")
+	next(w, r)
+}
+
+type httpErr struct {
+	Error string
 }
 
 func httpError(w http.ResponseWriter, code int) {
-	http.Error(w, http.StatusText(code), code)
+	err := &httpErr{http.StatusText(code)}
+	bytes, _ := json.Marshal(err)
+	w.WriteHeader(code)
+	w.Write(bytes)
 }
 
 func badRequest(w http.ResponseWriter) {

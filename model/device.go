@@ -43,3 +43,12 @@ func (d *Device) Save(db *sql.DB) error {
 	)
 	return err
 }
+
+func (d *Device) Delete(db *sql.DB) error {
+	_, err := db.Exec(
+		"DELETE FROM devices WHERE id = $1",
+		d.ID,
+	)
+
+	return err
+}

@@ -26,6 +26,13 @@ func (u *User) Save(db *sql.DB) error {
 		"INSERT INTO users VALUES ($1)",
 		u.ID,
 	)
+	return err
+}
 
+func (u *User) Delete(db *sql.DB) error {
+	_, err := db.Exec(
+		"DELETE FROM users WHERE id = $1",
+		u.ID,
+	)
 	return err
 }

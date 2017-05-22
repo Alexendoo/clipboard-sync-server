@@ -36,14 +36,14 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	user := model.NewUser()
 	device := model.NewDevice(req.Name, req.Token, user.ID)
 
-	err = users.Insert(user)
+	err = user.Save(db)
 	if err != nil {
 		serverError(w)
 		return
 	}
-	err = devices.Insert(device)
+	err = device.Save(db)
 	if err != nil {
-		users.Delete(user)
+		user.Delete(db)
 		serverError(w)
 		return
 	}

@@ -5,10 +5,15 @@ import (
 	"log"
 )
 
+var _pg *sql.DB
+
 func pg() *sql.DB {
-	db, err := sql.Open("postgres", "postgres://devel:devel@localhost/sync?sslmode=disable")
-	if err != nil {
-		log.Fatal(err)
+	if _pg == nil {
+		var err error
+		_pg, err = sql.Open("postgres", "postgres://devel:devel@localhost/sync?sslmode=disable")
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
-	return db
+	return _pg
 }

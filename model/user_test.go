@@ -6,12 +6,9 @@ import (
 )
 
 func TestFindUser(t *testing.T) {
-	db := getDB()
+	db := pg()
 	u := NewUser()
-	err := u.Save(db)
-	if err != nil {
-		t.Errorf("User.Save() error = %v", err)
-	}
+	u.Save(db)
 
 	u2, err := FindUser(db, u.ID)
 	if err != nil {
@@ -19,5 +16,14 @@ func TestFindUser(t *testing.T) {
 	}
 	if !reflect.DeepEqual(u, u2) {
 		t.Fail()
+	}
+}
+
+func TestUser_Save(t *testing.T) {
+	db := pg()
+	u := NewUser()
+	err := u.Save(db)
+	if err != nil {
+		t.Errorf("User.Save() error = %v", err)
 	}
 }

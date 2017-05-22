@@ -28,7 +28,7 @@ func FindDevice(db *sql.DB, id string) (*Device, error) {
 		FCMToken string
 		UserID   string
 	)
-	err := row.Scan(ID, Name, FCMToken, UserID)
+	err := row.Scan(&ID, &Name, &FCMToken, &UserID)
 
 	return &Device{ID, Name, FCMToken, UserID}, err
 }

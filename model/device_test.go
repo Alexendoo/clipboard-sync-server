@@ -1,19 +1,36 @@
 package model
 
 import (
+	"reflect"
 	"testing"
 )
 
-func TestDevice_Save(t *testing.T) {
-	db := getDB()
+func TestFindDevice(t *testing.T) {
+	db := pg()
 
 	u := NewUser()
-	err := u.Save(db)
+	u.Save(db)
+
+	d := NewDevice("dev", "token", u.ID)
+	d.Save(db)
+
+	d2, err := FindDevice(db, d.ID)
 	if err != nil {
-		t.Errorf("User.Save() error = %v", err)
+		t.Errorf("FindDevice() error = %v", err)
 	}
+	if !reflect.DeepEqual(d, d2) {
+		t.Fail()
+	}
+}
+
+func TestDevice_Save(t *testing.T) {
+	db := pg()
+
+	u := NewUser()
+	u.Save(db)
+
 	d := NewDevice("foo", "token", u.ID)
-	err = d.Save(db)
+	err := d.Save(db)
 	if err != nil {
 		t.Errorf("Device.Save() error = %v", err)
 	}

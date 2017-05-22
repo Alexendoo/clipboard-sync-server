@@ -1,10 +1,11 @@
 package model
 
 import (
-	"github.com/oklog/ulid"
-	"sync"
 	"math/rand"
+	"sync"
 	"time"
+
+	"github.com/oklog/ulid"
 )
 
 var randPool = &sync.Pool{
@@ -15,7 +16,7 @@ var randPool = &sync.Pool{
 }
 
 // NewULID generates a new ULID - a lexically sortable UUID
-func NewULID() ulid.ULID {
-	entropy := randPool.Get().(rand.Rand)
-	return ulid.MustNew(ulid.Now(), entropy)
+func NewULID() string {
+	entropy := randPool.Get().(*rand.Rand)
+	return ulid.MustNew(ulid.Now(), entropy).String()
 }

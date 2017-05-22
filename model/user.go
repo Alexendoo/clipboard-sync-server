@@ -1,17 +1,31 @@
 package model
 
 import (
-	kallax "gopkg.in/src-d/go-kallax.v1"
-	"github.com/oklog/ulid"
+	"database/sql"
 )
 
 type User struct {
-	kallax.Model `table:"users"`
-	ID ulid.ULID `pk:""`
+	ID string
 }
 
-func newUser() *User {
+func NewUser() *User {
 	return &User{
 		ID: NewULID(),
 	}
+}
+
+func FindUser(db *sql.DB, id string) (*User, error) {
+	row := db.QueryRow("SELECT * FROM users WHERE id = $1", id)
+	var ID string
+	err := row.Scan(&ID)
+	return &User{ID}, err
+}
+
+func (u *User) Save(db *sql.DB) error {
+	_, err := db.Exec(
+		"INSERT INTO users VALUES ($1)",
+		u.ID,
+	)
+
+	return err
 }

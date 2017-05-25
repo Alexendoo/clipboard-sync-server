@@ -13,7 +13,7 @@ func TestFindInvite(t *testing.T) {
 
 	user := NewUser()
 	device := NewDevice("one", "1", user.ID)
-	invite := NewInvite(NewULID(), device.ID)
+	invite := NewInvite(NewULID(), device.ID, time.Hour)
 
 	assert.Nil(t, user.Save(db))
 	assert.Nil(t, device.Save(db))

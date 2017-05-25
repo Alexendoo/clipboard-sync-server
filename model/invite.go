@@ -10,11 +10,11 @@ type Invite struct {
 	DeviceID string
 }
 
-// NewInvite creates an invite valid for one hour
-func NewInvite(id, deviceID string) *Invite {
+// NewInvite creates an Invite valid only for the given time.Duration
+func NewInvite(id, deviceID string, valid time.Duration) *Invite {
 	return &Invite{
 		ID:       id,
-		Expires:  time.Now().Add(1 * time.Hour).UTC(),
+		Expires:  time.Now().Add(valid).UTC(),
 		DeviceID: deviceID,
 	}
 }

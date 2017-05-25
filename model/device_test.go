@@ -20,7 +20,7 @@ func TestFindDevice(t *testing.T) {
 		t.Errorf("FindDevice() error = %v", err)
 	}
 	if !reflect.DeepEqual(d, d2) {
-		t.Fail()
+		t.Error("d != d2")
 	}
 }
 

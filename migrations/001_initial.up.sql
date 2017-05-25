@@ -13,10 +13,19 @@ CREATE TABLE devices (
   user_id   TEXT NOT NULL REFERENCES users
 );
 
+CREATE TABLE invites (
+  id        TEXT PRIMARY KEY,
+
+  expires   TIMESTAMP NOT NULL,
+
+  device_id TEXT      NOT NULL REFERENCES devices
+);
+
 -- CREATE TABLE sigchain (
---   id              UUID PRIMARY KEY,
---
 --   link            BYTEA NOT NULL,
+--
+--   user_id         TEXT  NOT NULL REFERENCES users,
 --   sequence_number INT   NOT NULL,
---   user_id         UUID  NOT NULL REFERENCES users
+--
+--   UNIQUE (user_id, sequence_number)
 -- );

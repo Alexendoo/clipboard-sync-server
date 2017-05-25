@@ -49,7 +49,7 @@ func TestRegisterDevice(t *testing.T) {
 
 	json.Unmarshal(body, &userResponse)
 
-	req := httptest.NewRequest("POST", "/", strings.NewReader`
-	
-	`)
+	httptest.NewRequest("POST", "/", strings.NewReader(`
+
+	`))
 }

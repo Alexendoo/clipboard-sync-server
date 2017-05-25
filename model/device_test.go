@@ -2,56 +2,46 @@ package model
 
 import (
 	"database/sql"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFindDevice(t *testing.T) {
 	db := pg()
 
 	u := NewUser()
-	u.Save(db)
+	assert.Nil(t, u.Save(db))
 
 	d := NewDevice("dev", "token", u.ID)
-	d.Save(db)
+	assert.Nil(t, d.Save(db))
 
 	d2, err := FindDevice(db, d.ID)
-	if err != nil {
-		t.Errorf("FindDevice() error = %v", err)
-	}
-	if !reflect.DeepEqual(d, d2) {
-		t.Error("d != d2")
-	}
+	assert.Nil(t, err)
+
+	assert.Equal(t, d, d2)
 }
 
 func TestDevice_Save(t *testing.T) {
 	db := pg()
 
 	u := NewUser()
-	u.Save(db)
+	assert.Nil(t, u.Save(db))
 
 	d := NewDevice("foo", "token", u.ID)
-	err := d.Save(db)
-	if err != nil {
-		t.Errorf("Device.Save() error = %v", err)
-	}
+	assert.Nil(t, d.Save(db))
 }
 
 func TestDevice_Delete(t *testing.T) {
 	db := pg()
 
 	u := NewUser()
-	u.Save(db)
+	assert.Nil(t, u.Save(db))
 
 	d := NewDevice("bar", "t", u.ID)
-	d.Save(db)
+	assert.Nil(t, d.Save(db))
 
-	err := d.Delete(db)
-	if err != nil {
-		t.Errorf("Device.Delete() error = %v", err)
-	}
-	_, err = FindDevice(db, d.ID)
-	if err != sql.ErrNoRows {
-		t.Errorf("FindDevice() error = %v", err)
-	}
+	assert.Nil(t, d.Delete(db))
+	_, err := FindDevice(db, d.ID)
+	assert.Equal(t, err, sql.ErrNoRows)
 }

@@ -2,67 +2,48 @@ package model
 
 import (
 	"database/sql"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFindUser(t *testing.T) {
 	db := pg()
 	u := NewUser()
-	u.Save(db)
+	assert.Nil(t, u.Save(db))
 
 	u2, err := FindUser(db, u.ID)
-	if err != nil {
-		t.Errorf("FindUser() error = %v", err)
-	}
-	if !reflect.DeepEqual(u, u2) {
-		t.Error("u != u2")
-	}
+	assert.Nil(t, err)
+	assert.Equal(t, u, u2)
 }
 
 func TestUserExists(t *testing.T) {
 	db := pg()
 	u := NewUser()
-	u.Save(db)
+	assert.Nil(t, u.Save(db))
 
 	exists, err := UserExists(db, u.ID)
-	if !exists {
-		t.Errorf("!exists")
-	}
-	if err != nil {
-		t.Errorf("UserExists() error - %v", err)
-	}
+	assert.True(t, exists)
+	assert.Nil(t, err)
 
 	exists, err = UserExists(db, "_")
-	if exists {
-		t.Errorf("exists")
-	}
-	if err != nil {
-		t.Errorf("UserExists() error - %v", err)
-	}
+	assert.False(t, exists)
+	assert.Nil(t, err)
 }
 
 func TestUser_Save(t *testing.T) {
 	db := pg()
 	u := NewUser()
-	err := u.Save(db)
-	if err != nil {
-		t.Errorf("User.Save() error = %v", err)
-	}
+	assert.Nil(t, u.Save(db))
 }
 
 func TestUser_Delete(t *testing.T) {
 	db := pg()
 	u := NewUser()
-	u.Save(db)
+	assert.Nil(t, u.Save(db))
 
-	err := u.Delete(db)
-	if err != nil {
-		t.Errorf("User.Delete() error = %v", err)
-	}
+	assert.Nil(t, u.Delete(db))
 
-	_, err = FindUser(db, u.ID)
-	if err != sql.ErrNoRows {
-		t.Errorf("FindUser() error = %v", err)
-	}
+	_, err := FindUser(db, u.ID)
+	assert.Equal(t, err, sql.ErrNoRows)
 }

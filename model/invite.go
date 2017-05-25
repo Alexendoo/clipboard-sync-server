@@ -14,7 +14,7 @@ type Invite struct {
 func NewInvite(id, deviceID string) *Invite {
 	return &Invite{
 		ID:       id,
-		Expires:  time.Now().Add(1 * time.Hour),
+		Expires:  time.Now().Add(1 * time.Hour).UTC(),
 		DeviceID: deviceID,
 	}
 }

@@ -43,3 +43,8 @@ func (i *Invite) Save(db *sql.DB) error {
 
 	return err
 }
+
+// Valid returns if an Invite has not yet expired
+func (i *Invite) Valid() bool {
+	return i.Expires.After(time.Now())
+}

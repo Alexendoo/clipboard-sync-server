@@ -2,7 +2,6 @@ package model
 
 import (
 	"testing"
-
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -24,4 +23,11 @@ func TestFindInvite(t *testing.T) {
 
 	assert.Equal(t, invite.ID, invite2.ID)
 	assert.WithinDuration(t, invite.Expires, invite2.Expires, time.Second)
+}
+
+func TestInvite_Valid(t *testing.T) {
+	invite := NewInvite(NewULID(), NewULID(), time.Millisecond)
+	assert.True(t, invite.Valid())
+	time.Sleep(time.Millisecond)
+	assert.False(t, invite.Valid())
 }

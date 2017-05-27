@@ -14,11 +14,11 @@ CREATE TABLE devices (
 );
 
 CREATE TABLE invites (
-  id        TEXT PRIMARY KEY,
+  id         TEXT PRIMARY KEY,
 
-  expires   TIMESTAMP NOT NULL,
+  expires    TIMESTAMP NOT NULL,
 
-  device_id TEXT      NOT NULL REFERENCES devices
+  source_id  TEXT REFERENCES devices
 );
 
 -- CREATE TABLE sigchain (

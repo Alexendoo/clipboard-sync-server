@@ -6,7 +6,7 @@ import (
 
 	"encoding/json"
 
-	"github.com/gorilla/pat"
+	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
 )
 
@@ -14,20 +14,27 @@ var db *sql.DB
 
 // Handler for all the application routes
 func Handler(_db *sql.DB) http.Handler {
-	router := pat.New()
+	router := mux.NewRouter()
 
 	db = _db
 
 	n := negroni.New()
 
-	router.Post("/user", RegisterUser)
-	router.Post("/device", RegisterDevice)
+	router.HandleFunc("/user", RegisterUser).
+		Methods(http.MethodPost)
+	router.HandleFunc("/device", RegisterDevice).
+		Methods(http.MethodPost)
+
+	router.HandleFunc("/invite/{device:src|dest}/{key}", InviteGet).
+		Methods(http.MethodGet)
+	router.HandleFunc("/invite/{device:src|dest}/{key}", InvitePost).
+		Methods(http.MethodPost)
 
 	n.UseFunc(jsonHeader)
 	n.UseHandler(router)
 	n.Use(negroni.NewLogger())
 
-	return n
+	return router
 }
 
 func jsonHeader(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {

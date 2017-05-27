@@ -16,11 +16,10 @@ func main() {
 	}
 
 	srv := &http.Server{
-		Addr:         "localhost:8080",
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  120 * time.Second,
-		Handler:      routes.Handler(db),
+		Addr:              "localhost:8080",
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       2 * time.Minute,
+		Handler:           routes.Handler(db),
 	}
 
 	log.Fatal(srv.ListenAndServe())

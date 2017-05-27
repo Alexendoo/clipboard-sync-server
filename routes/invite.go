@@ -1,31 +1,26 @@
 package routes
 
 import (
-	"net/http"
-
-	"log"
-
 	"io"
+	"net/http"
 
 	"github.com/gorilla/mux"
 )
 
 type invite struct {
-	srcReader *io.PipeReader
-	srcWriter *io.PipeWriter
+	srcReq chan *http.Request
+	srcRes chan http.ResponseWriter
 
-	destReader *io.PipeReader
-	destWriter *io.PipeWriter
+	destReq chan *http.Request
+	destRes chan http.ResponseWriter
 }
 
 func newInvite() *invite {
-	srcReader, destWriter := io.Pipe()
-	destReader, srcWriter := io.Pipe()
 	return &invite{
-		srcReader,
-		srcWriter,
-		destReader,
-		destWriter,
+		make(chan *http.Request),
+		make(chan http.ResponseWriter),
+		make(chan *http.Request),
+		make(chan http.ResponseWriter),
 	}
 }
 
@@ -46,18 +41,15 @@ func InviteGet(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 	if deviceType == "src" {
-		_, err = io.Copy(w, inv.srcReader)
+		inv.srcRes <- w
+		<-inv.srcReq
 	} else {
-		_, err = io.Copy(w, inv.destReader)
+		inv.destRes <- w
+		<-inv.destReq
 	}
 	if err != nil {
 		serverError(w)
 	}
-
-	log.Printf("inv: %#+v\n", inv)
-	log.Printf("ok: %#+v\n", ok)
-	log.Printf("key: %#+v\n", key)
-	log.Printf("deviceType: %#+v\n", deviceType)
 }
 
 func InvitePost(w http.ResponseWriter, r *http.Request) {
@@ -75,11 +67,13 @@ func InvitePost(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 	if deviceType == "src" {
-		_, err = io.Copy(inv.srcWriter, r.Body)
-		inv.srcWriter.Close()
+		res := <-inv.destRes
+		_, err = io.Copy(res, r.Body)
+		inv.destReq <- r
 	} else {
-		_, err = io.Copy(inv.destWriter, r.Body)
-		inv.destWriter.Close()
+		res := <-inv.srcRes
+		_, err = io.Copy(res, r.Body)
+		inv.srcReq <- r
 	}
 	if err != nil {
 		serverError(w)

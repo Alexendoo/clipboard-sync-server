@@ -32,9 +32,8 @@ func Handler(_db *sql.DB) http.Handler {
 
 	n.UseFunc(jsonHeader)
 	n.UseHandler(router)
-	n.Use(negroni.NewLogger())
 
-	return router
+	return n
 }
 
 func jsonHeader(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {

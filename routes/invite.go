@@ -2,15 +2,15 @@ package routes
 
 import (
 	"io"
-	"net/http"
-
-	"sync"
-
 	"log"
+	"net/http"
+	"sync"
 
 	"github.com/gorilla/mux"
 )
 
+// Invites is a list of invites that exist for the lifetime of any requests to the
+// invite key
 type Invites struct {
 	sync.RWMutex
 	invites map[string]*invite
@@ -32,10 +32,8 @@ func (i *Invites) Get(key string) *invite {
 
 		inv = &invite{
 			sync.WaitGroup{},
-			make(chan *http.Request),
-			make(chan http.ResponseWriter),
-			make(chan *http.Request),
-			make(chan http.ResponseWriter),
+			newInviteConn(),
+			newInviteConn(),
 		}
 
 		i.Lock()
@@ -56,14 +54,23 @@ func (i *Invites) Get(key string) *invite {
 	return inv
 }
 
+type inviteConn struct {
+	res  chan http.ResponseWriter
+	done chan interface{}
+}
+
+func newInviteConn() *inviteConn {
+	return &inviteConn{
+		make(chan http.ResponseWriter),
+		make(chan interface{}),
+	}
+}
+
 type invite struct {
 	wg sync.WaitGroup
 
-	srcReq chan *http.Request
-	srcRes chan http.ResponseWriter
-
-	destReq chan *http.Request
-	destRes chan http.ResponseWriter
+	src  *inviteConn
+	dest *inviteConn
 }
 
 var invites = NewInvites()
@@ -76,19 +83,16 @@ func InviteGet(w http.ResponseWriter, r *http.Request) {
 
 	inv := invites.Get(key)
 	defer inv.wg.Done()
-	defer log.Println("req done")
 
-	var err error
+	var device *inviteConn
 	if deviceType == "src" {
-		inv.srcRes <- w
-		<-inv.srcReq
+		device = inv.src
 	} else {
-		inv.destRes <- w
-		<-inv.destReq
+		device = inv.dest
 	}
-	if err != nil {
-		serverError(w)
-	}
+
+	device.res <- w
+	<-device.done
 }
 
 func InvitePost(w http.ResponseWriter, r *http.Request) {
@@ -99,18 +103,21 @@ func InvitePost(w http.ResponseWriter, r *http.Request) {
 
 	inv := invites.Get(key)
 	defer inv.wg.Done()
-	defer log.Println("post done")
 
-	var err error
+	var device *inviteConn
 	if deviceType == "src" {
-		res := <-inv.destRes
-		_, err = io.Copy(res, r.Body)
-		inv.destReq <- r
+		device = inv.dest
 	} else {
-		res := <-inv.srcRes
-		_, err = io.Copy(res, r.Body)
-		inv.srcReq <- r
+		device = inv.src
 	}
+
+	res := <-device.res
+
+	res.Header().Set("Content-Length", r.Header.Get("Content-Length"))
+
+	_, err := io.Copy(res, r.Body)
+	device.done <- r
+
 	if err != nil {
 		serverError(w)
 		return

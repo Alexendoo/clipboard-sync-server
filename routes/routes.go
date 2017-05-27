@@ -2,9 +2,8 @@ package routes
 
 import (
 	"database/sql"
-	"net/http"
-
 	"encoding/json"
+	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
@@ -33,7 +32,7 @@ func Handler(_db *sql.DB) http.Handler {
 	n.UseFunc(jsonHeader)
 	n.UseHandler(router)
 
-	return n
+	return router
 }
 
 func jsonHeader(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {

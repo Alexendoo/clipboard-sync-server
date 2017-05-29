@@ -55,6 +55,10 @@ func badRequest(w http.ResponseWriter) {
 	httpError(w, http.StatusBadRequest)
 }
 
+func forbidden(w http.ResponseWriter) {
+	httpError(w, http.StatusForbidden)
+}
+
 func serverError(w http.ResponseWriter) {
 	httpError(w, http.StatusInternalServerError)
 }

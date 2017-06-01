@@ -22,7 +22,7 @@ func Handler(_db *sql.DB) http.Handler {
 	router.HandleFunc("/register", Register).
 		Methods(http.MethodPost)
 
-	router.HandleFunc("/link/{id}", AddLink).
+	router.HandleFunc("/link/{uid}", AddLink).
 		Methods(http.MethodPost)
 
 	router.HandleFunc("/invite/{device:src|dest}/{key}", InviteGet).
@@ -33,7 +33,7 @@ func Handler(_db *sql.DB) http.Handler {
 	n.UseFunc(jsonHeader)
 	n.UseHandler(router)
 
-	return router
+	return n
 }
 
 func jsonHeader(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {

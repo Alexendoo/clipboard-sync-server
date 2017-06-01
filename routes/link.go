@@ -2,86 +2,62 @@ package routes
 
 import (
 	"encoding/json"
-	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
+
+	"io/ioutil"
 
 	"github.com/gorilla/mux"
 	"golang.org/x/crypto/ed25519"
 )
 
 type genericLink struct {
-	Type string          `json:"type"`
-	Body json.RawMessage `json:"body"`
-
-	SeqNo uint   `json:"seqno"`
-	Prev  string `json:"prev"`
+	Type  string          `json:"type"`
+	Body  json.RawMessage `json:"body"`
+	SeqNo uint            `json:"seqno"`
+	Prev  string          `json:"prev"`
 }
 
 type newKey struct {
-	KeyID     ed25519.PublicKey `json:"kid"`
+	PubKey    ed25519.PublicKey `json:"pkey"`
 	UserIDSig []byte            `json:"uid_sig"`
 }
 
-func getPayload(w http.ResponseWriter, r io.Reader) (key ed25519.PublicKey, payload []byte) {
-	const minsize = 2 + ed25519.PublicKeySize + ed25519.SignatureSize
-	const maxsize = 8192
-
-	reader := io.LimitReader(r, maxsize)
-	body, err := ioutil.ReadAll(reader)
-
-	if err != nil || len(body) <= minsize || len(body) >= maxsize {
-		badRequest(w)
-		return nil, nil
-	}
-
-	version := body[0]
-	if version != 0 {
-		badRequest(w)
-		return nil, nil
-	}
-
-	key = body[1:33]
-	sig := body[33:97]
-	payload = body[97:]
-
-	valid := ed25519.Verify(key, payload, sig)
-	if !valid {
-		forbidden(w)
-		return nil, nil
-	}
-
-	return key, payload
-}
-
-// AddLink adds a link to a users signature chain, links are formatted as:
-//
-//   version (1 byte)
-//   publicKey (32 bytes)
-//   signature (64 bytes)
-//   payload (arbitrary bytes)
-//
-// where version is 0, publicKey is an ed25119 public key, signature
-// is ed25519.Sign(publicKey, payload) and payload is a json encoded
-// genericLink
+// AddLink adds a link to a users signature chain
 func AddLink(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	uid := vars["id"]
+	uid := vars["uid"]
 
 	log.Printf("uid: %#+v\n", uid)
 
-	_, payload := getPayload(w, r.Body)
-	if payload == nil {
-		return
-	}
-
-	link := &genericLink{}
-	err := json.Unmarshal(payload, link)
+	reader := http.MaxBytesReader(w, r.Body, 10)
+	body, err := ioutil.ReadAll(reader)
 	if err != nil {
 		badRequest(w)
 		return
 	}
+
+	link := &genericLink{}
+	err = json.Unmarshal(body, link)
+	if err != nil {
+		badRequest(w)
+		return
+	}
+
+	signature := decodeHeader(r, "Sync-Sig")
+	pubkey := decodeHeader(r, "Sync-PKey")
+	if len(signature) != ed25519.SignatureSize || len(pubkey) != ed25519.PublicKeySize {
+		badRequest(w)
+		return
+	}
+
+	valid := ed25519.Verify(pubkey, body, signature)
+	if !valid {
+		forbidden(w)
+		return
+	}
+
+	// TODO: verify for user
 
 	switch link.Type {
 	default:

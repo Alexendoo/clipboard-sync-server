@@ -5,21 +5,21 @@ CREATE TABLE users (
 -- CREATE TYPE DEVICE_TYPE AS ENUM ('chrome', 'android');
 
 CREATE TABLE devices (
-  id        TEXT PRIMARY KEY,
+  public_key BYTEA PRIMARY KEY,
 
-  name      TEXT NOT NULL,
-  fcm_token TEXT NOT NULL,
+  name       TEXT NOT NULL,
+  fcm_token  TEXT NOT NULL,
 
-  user_id   TEXT NOT NULL REFERENCES users
+  user_id    TEXT NOT NULL REFERENCES users
 );
 
-CREATE TABLE invites (
-  id        TEXT PRIMARY KEY,
-
-  expires   TIMESTAMP NOT NULL,
-
-  source_id TEXT REFERENCES devices
-);
+-- CREATE TABLE invites (
+--   id        TEXT PRIMARY KEY,
+--
+--   expires   TIMESTAMP NOT NULL,
+--
+--   source_id BYTEA REFERENCES devices
+-- );
 
 CREATE TABLE sigchain (
   link            BYTEA NOT NULL,

@@ -7,6 +7,9 @@ import (
 
 	"io/ioutil"
 
+	"database/sql"
+
+	"github.com/Alexendoo/sync/model"
 	"github.com/gorilla/mux"
 	"golang.org/x/crypto/ed25519"
 )
@@ -57,7 +60,20 @@ func AddLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: verify for user
+	user, err := model.FindDevice(db, pubkey)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			notFound(w)
+		} else {
+			serverError(w)
+		}
+		return
+	}
+
+	if user.UserID != uid {
+		forbidden(w)
+		return
+	}
 
 	switch link.Type {
 	default:

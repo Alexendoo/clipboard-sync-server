@@ -63,3 +63,7 @@ func forbidden(w http.ResponseWriter) {
 func serverError(w http.ResponseWriter) {
 	httpError(w, http.StatusInternalServerError)
 }
+
+func notFound(w http.ResponseWriter) {
+	httpError(w, http.StatusNotFound)
+}

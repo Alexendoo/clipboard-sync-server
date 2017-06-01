@@ -2,20 +2,21 @@ package routes
 
 import (
 	"encoding/json"
+	"io"
+	"io/ioutil"
+	"log"
 	"net/http"
 
-	"io/ioutil"
-
-	"io"
-
+	"github.com/gorilla/mux"
 	"golang.org/x/crypto/ed25519"
 )
 
 type genericLink struct {
-	Type  string          `json:"type"`
-	Body  json.RawMessage `json:"body"`
-	SeqNo uint            `json:"seqno"`
-	Prev  string          `json:"prev"`
+	Type string          `json:"type"`
+	Body json.RawMessage `json:"body"`
+
+	SeqNo uint   `json:"seqno"`
+	Prev  string `json:"prev"`
 }
 
 type newKey struct {
@@ -23,11 +24,11 @@ type newKey struct {
 	UserIDSig []byte            `json:"uid_sig"`
 }
 
-func getPayload(w http.ResponseWriter, r *http.Request) (key ed25519.PublicKey, payload []byte) {
+func getPayload(w http.ResponseWriter, r io.Reader) (key ed25519.PublicKey, payload []byte) {
 	const minsize = 2 + ed25519.PublicKeySize + ed25519.SignatureSize
 	const maxsize = 8192
 
-	reader := io.LimitReader(r.Body, maxsize)
+	reader := io.LimitReader(r, maxsize)
 	body, err := ioutil.ReadAll(reader)
 
 	if err != nil || len(body) <= minsize || len(body) >= maxsize {
@@ -65,8 +66,26 @@ func getPayload(w http.ResponseWriter, r *http.Request) (key ed25519.PublicKey, 
 // is ed25519.Sign(publicKey, payload) and payload is a json encoded
 // genericLink
 func AddLink(w http.ResponseWriter, r *http.Request) {
-	_, payload := getPayload(w, r)
+	vars := mux.Vars(r)
+	uid := vars["id"]
+
+	log.Printf("uid: %#+v\n", uid)
+
+	_, payload := getPayload(w, r.Body)
 	if payload == nil {
+		return
+	}
+
+	link := &genericLink{}
+	err := json.Unmarshal(payload, link)
+	if err != nil {
+		badRequest(w)
+		return
+	}
+
+	switch link.Type {
+	default:
+		badRequest(w)
 		return
 	}
 }

@@ -19,9 +19,10 @@ func Handler(_db *sql.DB) http.Handler {
 
 	n := negroni.New()
 
-	router.HandleFunc("/user", RegisterUser).
+	router.HandleFunc("/register", Register).
 		Methods(http.MethodPost)
-	router.HandleFunc("/device", RegisterDevice).
+
+	router.HandleFunc("/link/{id}", AddLink).
 		Methods(http.MethodPost)
 
 	router.HandleFunc("/invite/{device:src|dest}/{key}", InviteGet).

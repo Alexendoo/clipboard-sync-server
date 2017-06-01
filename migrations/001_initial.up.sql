@@ -24,6 +24,9 @@ CREATE TABLE devices (
 CREATE TABLE sigchain (
   link            BYTEA NOT NULL,
 
+  signature       BYTEA NOT NULL,
+  signed_by       BYTEA NOT NULL REFERENCES devices,
+
   user_id         TEXT  NOT NULL REFERENCES users,
   sequence_number INT   NOT NULL,
 

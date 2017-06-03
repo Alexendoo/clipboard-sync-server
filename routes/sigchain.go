@@ -9,16 +9,18 @@ import (
 
 	"database/sql"
 
+	"crypto/sha256"
+
 	"github.com/Alexendoo/sync/model"
 	"github.com/gorilla/mux"
 	"golang.org/x/crypto/ed25519"
 )
 
 type genericLink struct {
-	Type  string          `json:"type"`
-	Body  json.RawMessage `json:"body"`
-	SeqNo uint            `json:"seqno"`
-	Prev  string          `json:"prev"`
+	Type  string            `json:"type"`
+	Body  json.RawMessage   `json:"body"`
+	SeqNo uint              `json:"seqno"`
+	Prev  [sha256.Size]byte `json:"prev"`
 }
 
 type newKey struct {
@@ -49,12 +51,8 @@ func AddLink(w http.ResponseWriter, r *http.Request) {
 
 	signature := decodeHeader(r, "Sync-Sig")
 	pubkey := decodeHeader(r, "Sync-PKey")
-	if len(signature) != ed25519.SignatureSize || len(pubkey) != ed25519.PublicKeySize {
-		badRequest(w)
-		return
-	}
-
-	valid := ed25519.Verify(pubkey, body, signature)
+	valid := len(pubkey) == ed25519.PublicKeySize &&
+		ed25519.Verify(pubkey, body, signature)
 	if !valid {
 		forbidden(w)
 		return
@@ -72,6 +70,22 @@ func AddLink(w http.ResponseWriter, r *http.Request) {
 
 	if user.UserID != uid {
 		forbidden(w)
+		return
+	}
+
+	lastLink, err := model.LastLink(db, uid)
+	if err != nil {
+		serverError(w)
+		return
+	}
+
+	if link.SeqNo != lastLink.SeqNo+1 {
+		httpError(w, http.StatusConflict)
+		return
+	}
+
+	if link.Prev != sha256.Sum256(lastLink.Body) {
+		badRequest(w)
 		return
 	}
 

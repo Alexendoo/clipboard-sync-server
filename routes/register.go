@@ -9,7 +9,10 @@ import (
 )
 
 type newUserRequest struct {
-	Link []byte
+	Link      []byte
+	FCMToken  string
+	Signature []byte
+	PubKey    []byte
 }
 
 type newUserResponse struct {
@@ -17,17 +20,17 @@ type newUserResponse struct {
 	Device *model.Device
 }
 
-// Register creates a new User and provision an initial Device
-func Register(w http.ResponseWriter, r *http.Request) {
-	bytes, err := ioutil.ReadAll(r.Body)
+// RegisterUser creates a new User and provision an initial Device
+func RegisterUser(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		badRequest(w)
 		return
 	}
 
 	var req newUserRequest
-	err = json.Unmarshal(bytes, &req)
-	if err != nil || req.Link == nil {
+	err = json.Unmarshal(body, &req)
+	if err != nil {
 		badRequest(w)
 		return
 	}
@@ -39,4 +42,21 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	device := model.NewDevice(req.PubKey, "foo", req.FCMToken, user.ID)
+	err = device.Save(db)
+	if err != nil {
+		serverError(w)
+		user.Delete(db)
+		return
+	}
+
+	linkAdded := AddLink(w, user.ID, req.Link, req.Signature, req.PubKey)
+	if !linkAdded {
+		device.Delete(db)
+		user.Delete(db)
+		return
+	}
+
+	resp, _ := json.Marshal(&newUserResponse{user, device})
+	w.Write(resp)
 }

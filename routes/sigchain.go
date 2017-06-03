@@ -1,97 +1,116 @@
 package routes
 
 import (
+	"crypto/sha256"
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
 
-	"io/ioutil"
-
-	"database/sql"
-
-	"crypto/sha256"
+	"bytes"
 
 	"github.com/Alexendoo/sync/model"
-	"github.com/gorilla/mux"
 	"golang.org/x/crypto/ed25519"
 )
 
 type genericLink struct {
-	Type  string            `json:"type"`
-	Body  json.RawMessage   `json:"body"`
-	SeqNo uint              `json:"seqno"`
-	Prev  [sha256.Size]byte `json:"prev"`
+	Type  string          `json:"type"`
+	Body  json.RawMessage `json:"body"`
+	SeqNo uint            `json:"seqno"`
+	Prev  []byte          `json:"prev"`
 }
 
-type newKey struct {
-	PubKey    ed25519.PublicKey `json:"pkey"`
-	UserIDSig []byte            `json:"uid_sig"`
+type newKeyBody struct {
+	PubKey ed25519.PublicKey `json:"pkey"`
 }
 
 // AddLink adds a link to a users signature chain
-func AddLink(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	uid := vars["uid"]
-
-	log.Printf("uid: %#+v\n", uid)
-
-	reader := http.MaxBytesReader(w, r.Body, 10)
-	body, err := ioutil.ReadAll(reader)
+func AddLink(w http.ResponseWriter, userid string, body, signature, pubkey []byte) bool {
+	var link genericLink
+	err := json.Unmarshal(body, &link)
 	if err != nil {
 		badRequest(w)
-		return
+		return false
 	}
 
-	link := &genericLink{}
-	err = json.Unmarshal(body, link)
-	if err != nil {
-		badRequest(w)
-		return
-	}
-
-	signature := decodeHeader(r, "Sync-Sig")
-	pubkey := decodeHeader(r, "Sync-PKey")
 	valid := len(pubkey) == ed25519.PublicKeySize &&
 		ed25519.Verify(pubkey, body, signature)
 	if !valid {
 		forbidden(w)
-		return
+		log.Printf("invalid signature\n")
+		return false
 	}
 
-	user, err := model.FindDevice(db, pubkey)
+	verified := false
+	switch link.Type {
+	case "root":
+		verified = verifyRoot(w, &link, pubkey)
+	case "new_device":
+		verified = verifyNewDevice(w, &link, pubkey, userid)
+	default:
+		badRequest(w)
+		verified = false
+	}
+	if !verified {
+		return false
+	}
+
+	err = model.NewLink(body, signature, pubkey, userid, link.SeqNo).Save(db)
+	if err != nil {
+		serverError(w)
+		return false
+	}
+
+	return true
+}
+
+func verifyRoot(w http.ResponseWriter, link *genericLink, pubkey ed25519.PublicKey) bool {
+	if link.SeqNo != 0 {
+		badRequest(w)
+		return false
+	}
+
+	var newKey newKeyBody
+	err := json.Unmarshal(link.Body, &newKey)
+	if err != nil {
+		return false
+	}
+
+	return bytes.Equal(pubkey, newKey.PubKey)
+}
+
+func verifyNewDevice(w http.ResponseWriter, link *genericLink, pubkey ed25519.PublicKey, userid string) bool {
+	device, err := model.FindDevice(db, pubkey)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			notFound(w)
 		} else {
 			serverError(w)
 		}
-		return
+		return false
 	}
 
-	if user.UserID != uid {
+	if device.UserID != userid {
 		forbidden(w)
-		return
+		return false
 	}
 
-	lastLink, err := model.LastLink(db, uid)
+	lastLink, err := model.LastLink(db, userid)
 	if err != nil {
 		serverError(w)
-		return
+		return false
 	}
 
 	if link.SeqNo != lastLink.SeqNo+1 {
 		httpError(w, http.StatusConflict)
-		return
+		return false
 	}
 
-	if link.Prev != sha256.Sum256(lastLink.Body) {
+	checksum := sha256.Sum256(lastLink.Body)
+	if !bytes.Equal(link.Prev, checksum[:]) {
 		badRequest(w)
-		return
+		return false
 	}
 
-	switch link.Type {
-	default:
-		badRequest(w)
-		return
-	}
+	return true
 }

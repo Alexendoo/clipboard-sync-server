@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Alexendoo/sync/routes"
+	"github.com/Alexendoo/clipboard-sync-server/routes"
 )
 
 func main() {

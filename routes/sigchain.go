@@ -5,12 +5,11 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
 
-	"io/ioutil"
-
-	"github.com/Alexendoo/sync/model"
+	"github.com/Alexendoo/clipboard-sync-server/model"
 	"golang.org/x/crypto/ed25519"
 )
 

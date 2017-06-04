@@ -1,6 +1,8 @@
 package model
 
-import "database/sql"
+import (
+	"database/sql"
+)
 
 // Link represents a single entry in a User's sigchain
 type Link struct {

@@ -1,7 +1,9 @@
 package routes
 
-import "net/http"
-import "encoding/base64"
+import (
+	"encoding/base64"
+	"net/http"
+)
 
 func empty(strs ...string) bool {
 	for _, str := range strs {

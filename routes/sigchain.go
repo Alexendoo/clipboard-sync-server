@@ -1,17 +1,24 @@
 package routes
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
 
-	"bytes"
+	"io/ioutil"
 
 	"github.com/Alexendoo/sync/model"
 	"golang.org/x/crypto/ed25519"
 )
+
+type linkRequest struct {
+	Link      json.RawMessage
+	Signature []byte
+	PubKey    ed25519.PublicKey
+}
 
 type genericLink struct {
 	Type  string          `json:"type"`
@@ -20,97 +27,141 @@ type genericLink struct {
 	Prev  []byte          `json:"prev"`
 }
 
-type newKeyBody struct {
-	PubKey ed25519.PublicKey `json:"pkey"`
+type newDeviceBody struct {
+	Name     string            `json:"name"`
+	PubKey   ed25519.PublicKey `json:"pkey"`
+	FCMToken string            `json:"fcm"`
 }
 
 // AddLink adds a link to a users signature chain
-func AddLink(w http.ResponseWriter, userid string, body, signature, pubkey []byte) bool {
-	var link genericLink
-	err := json.Unmarshal(body, &link)
+func AddLink(w http.ResponseWriter, r *http.Request) {
+	reader := http.MaxBytesReader(w, r.Body, 10000)
+	body, err := ioutil.ReadAll(reader)
 	if err != nil {
-		badRequest(w)
-		return false
+		// TODO: check resp badRequest(w)
+		return
 	}
 
-	valid := len(pubkey) == ed25519.PublicKeySize &&
-		ed25519.Verify(pubkey, body, signature)
+	var req linkRequest
+	err = json.Unmarshal(body, &req)
+	if err != nil {
+		badRequest(w)
+		return
+	}
+
+	valid := len(req.PubKey) == ed25519.PublicKeySize &&
+		ed25519.Verify(req.PubKey, req.Link, req.Signature)
 	if !valid {
 		forbidden(w)
 		log.Printf("invalid signature\n")
-		return false
+		return
 	}
 
-	verified := false
+	var link genericLink
+	err = json.Unmarshal(req.Link, &link)
+	if err != nil {
+		badRequest(w)
+		return
+	}
+
 	switch link.Type {
 	case "root":
-		verified = verifyRoot(w, &link, pubkey)
+		addRoot(w, &link, &req)
 	case "new_device":
-		verified = verifyNewDevice(w, &link, pubkey, userid)
+		addNewDevice(w, &link, &req)
 	default:
 		badRequest(w)
-		verified = false
 	}
-	if !verified {
-		return false
-	}
-
-	err = model.NewLink(body, signature, pubkey, userid, link.SeqNo).Save(db)
-	if err != nil {
-		serverError(w)
-		return false
-	}
-
-	return true
 }
 
-func verifyRoot(w http.ResponseWriter, link *genericLink, pubkey ed25519.PublicKey) bool {
+func addRoot(w http.ResponseWriter, link *genericLink, req *linkRequest) {
 	if link.SeqNo != 0 {
 		badRequest(w)
-		return false
+		return
 	}
 
-	var newKey newKeyBody
-	err := json.Unmarshal(link.Body, &newKey)
+	var newDevice newDeviceBody
+	err := json.Unmarshal(link.Body, &newDevice)
 	if err != nil {
-		return false
+		badRequest(w)
+		return
 	}
 
-	return bytes.Equal(pubkey, newKey.PubKey)
+	user := model.NewUser()
+	err = user.Save(db)
+	if err != nil {
+		serverError(w)
+		return
+	}
+
+	device := model.NewDevice(req.PubKey, newDevice.FCMToken, user.ID)
+	err = device.Save(db)
+	if err != nil {
+		serverError(w)
+		user.Delete(db)
+		return
+	}
+
+	savedLink := model.NewLink(req.Link, req.Signature, req.PubKey, user.ID, link.SeqNo)
+	err = savedLink.Save(db)
+	if err != nil {
+		serverError(w)
+		user.Delete(db)
+		device.Delete(db)
+		return
+	}
+
+	resp, _ := json.Marshal(&savedLink)
+	w.Write(resp)
 }
 
-func verifyNewDevice(w http.ResponseWriter, link *genericLink, pubkey ed25519.PublicKey, userid string) bool {
-	device, err := model.FindDevice(db, pubkey)
+func addNewDevice(w http.ResponseWriter, link *genericLink, req *linkRequest) {
+	var newDevice newDeviceBody
+	err := json.Unmarshal(link.Body, &newDevice)
+	if err != nil {
+		badRequest(w)
+		return
+	}
+
+	signatory, err := model.FindDevice(db, req.PubKey)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			notFound(w)
+			badRequest(w)
 		} else {
 			serverError(w)
 		}
-		return false
+		return
 	}
 
-	if device.UserID != userid {
-		forbidden(w)
-		return false
-	}
-
-	lastLink, err := model.LastLink(db, userid)
+	lastLink, err := model.LastLink(db, signatory.UserID)
 	if err != nil {
 		serverError(w)
-		return false
+		return
 	}
 
 	if link.SeqNo != lastLink.SeqNo+1 {
 		httpError(w, http.StatusConflict)
-		return false
+		return
 	}
 
 	checksum := sha256.Sum256(lastLink.Body)
 	if !bytes.Equal(link.Prev, checksum[:]) {
 		badRequest(w)
-		return false
+		return
 	}
 
-	return true
+	device := model.NewDevice(newDevice.PubKey, newDevice.FCMToken, signatory.UserID)
+	err = device.Save(db)
+	if err != nil {
+		serverError(w)
+		return
+	}
+
+	savedLink := model.NewLink(req.Link, req.Signature, req.PubKey, signatory.UserID, link.SeqNo)
+	err = savedLink.Save(db)
+	if err != nil {
+		serverError(w)
+		device.Delete(db)
+		return
+	}
 }

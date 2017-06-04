@@ -13,17 +13,17 @@ func TestLastLink(t *testing.T) {
 	assert.Nil(t, user.Save(db))
 
 	pub, _, _ := ed25519.GenerateKey(nil)
-	device := NewDevice(pub, "device", "", user.ID)
+	device := NewDevice(pub, "", user.ID)
 	assert.Nil(t, device.Save(db))
 
-	link0 := NewLink([]byte("{}"), []byte(""), pub, user.ID, 0)
+	link0 := NewLink([]byte("{}"), []byte("abc"), pub, user.ID, 0)
 	assert.Nil(t, link0.Save(db))
 
 	_link, err := LastLink(db, user.ID)
 	assert.Equal(t, link0, _link)
 	assert.Nil(t, err)
 
-	link1 := NewLink([]byte("{}"), []byte(""), pub, user.ID, 1)
+	link1 := NewLink([]byte("{}"), []byte("def"), pub, user.ID, 1)
 	assert.Nil(t, link1.Save(db))
 
 	_link, err = LastLink(db, user.ID)

@@ -17,7 +17,7 @@ func TestFindDevice(t *testing.T) {
 	pub, _, err := ed25519.GenerateKey(nil)
 	assert.Nil(t, err)
 
-	d := NewDevice(pub, "dev", "token", u.ID)
+	d := NewDevice(pub, "token", u.ID)
 	assert.Nil(t, d.Save(db))
 
 	d2, err := FindDevice(db, d.PKey)
@@ -35,7 +35,7 @@ func TestDevice_Save(t *testing.T) {
 	pub, _, err := ed25519.GenerateKey(nil)
 	assert.Nil(t, err)
 
-	d := NewDevice(pub, "foo", "token", u.ID)
+	d := NewDevice(pub, "token", u.ID)
 	assert.Nil(t, d.Save(db))
 }
 
@@ -48,7 +48,7 @@ func TestDevice_Delete(t *testing.T) {
 	pub, _, err := ed25519.GenerateKey(nil)
 	assert.Nil(t, err)
 
-	d := NewDevice(pub, "bar", "t", u.ID)
+	d := NewDevice(pub, "t", u.ID)
 	assert.Nil(t, d.Save(db))
 
 	assert.Nil(t, d.Delete(db))

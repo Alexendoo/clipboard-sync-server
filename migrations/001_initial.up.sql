@@ -7,7 +7,6 @@ CREATE TABLE users (
 CREATE TABLE devices (
   public_key BYTEA PRIMARY KEY,
 
-  name       TEXT NOT NULL,
   fcm_token  TEXT NOT NULL,
 
   user_id    TEXT NOT NULL REFERENCES users

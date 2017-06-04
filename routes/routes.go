@@ -30,14 +30,19 @@ func Handler(_db *sql.DB) http.Handler {
 	router.HandleFunc("/about", About).
 		Methods(http.MethodGet)
 
-	n.UseFunc(jsonHeader)
+	router.HandleFunc("/", CORS).
+		Methods(http.MethodOptions)
+
+	n.UseFunc(standardHeaders)
 	n.UseHandler(router)
 
 	return n
 }
 
-func jsonHeader(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	w.Header().Set("Content-Type", "application/json")
+func standardHeaders(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	h := w.Header()
+	h.Set("Content-Type", "application/json")
+	h.Set("Access-Control-Allow-Origin", "*")
 	next(w, r)
 }
 

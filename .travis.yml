@@ -1,0 +1,17 @@
+language: go
+
+services:
+  - postgresql
+
+env:
+  - POSTGRES_URL=postgres://postgres@localhost/sync?sslmode=disable
+
+install:
+  - go get -d -t -v ./...
+
+before_script:
+  - psql -c "CREATE DATABASE sync;" -U postgres
+
+script:
+  - go build -v
+  - go test -v ./...

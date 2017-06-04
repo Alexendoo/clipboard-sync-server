@@ -2,4 +2,4 @@
 _tools
 vendor
 vendor.orig
-/clipboard-sync-server*
+/sync*

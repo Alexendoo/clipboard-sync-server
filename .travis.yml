@@ -17,5 +17,5 @@ before_script:
   - psql -d sync -af migrations/001_initial.up.sql -U postgres
 
 script:
-  - go build -v
+  - go build -v ./cmd/sync
   - go test -v ./...

@@ -14,9 +14,9 @@ import (
 )
 
 type linkRequest struct {
-	Link      json.RawMessage
-	Signature []byte
-	PubKey    ed25519.PublicKey
+	Link      []byte            `json:"link"`
+	Signature []byte            `json:"sig"`
+	PubKey    ed25519.PublicKey `json:"pkey"`
 }
 
 type genericLink struct {
@@ -82,6 +82,11 @@ func addRoot(w http.ResponseWriter, link *genericLink, req *linkRequest) {
 	var newDevice newDeviceBody
 	err := json.Unmarshal(link.Body, &newDevice)
 	if err != nil {
+		badRequest(w)
+		return
+	}
+
+	if !bytes.Equal(req.PubKey, newDevice.PubKey) {
 		badRequest(w)
 		return
 	}

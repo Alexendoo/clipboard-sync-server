@@ -10,6 +10,7 @@ env:
   - POSTGRES_URL=postgres://postgres@localhost/sync?sslmode=disable
 
 install:
+  - go get -u -v github.com/haya14busa/goverage
   - go get -d -t -v ./...
 
 before_script:
@@ -18,4 +19,7 @@ before_script:
 
 script:
   - go build -v ./cmd/sync
-  - go test -v ./...
+  - goverage -v -race -coverprofile=coverage.out -covermode=atomic ./...
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

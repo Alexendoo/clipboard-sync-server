@@ -6,18 +6,15 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/urfave/negroni"
 )
 
 var db *sql.DB
 
 // Handler for all the application routes
-func Handler(_db *sql.DB) http.Handler {
+func Handler(_db *sql.DB) http.HandlerFunc {
 	router := mux.NewRouter()
 
 	db = _db
-
-	n := negroni.New()
 
 	router.HandleFunc("/chain", AddLink).
 		Methods(http.MethodPost)
@@ -33,17 +30,10 @@ func Handler(_db *sql.DB) http.Handler {
 	router.HandleFunc("/", CORS).
 		Methods(http.MethodOptions)
 
-	n.UseFunc(standardHeaders)
-	n.UseHandler(router)
-
-	return n
-}
-
-func standardHeaders(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	h := w.Header()
-	h.Set("Content-Type", "application/json")
-	h.Set("Access-Control-Allow-Origin", "*")
-	next(w, r)
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		router.ServeHTTP(w, r)
+	}
 }
 
 type httpErr struct {

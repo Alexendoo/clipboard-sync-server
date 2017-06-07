@@ -1,0 +1,22 @@
+syntax = "proto3";
+package messages;
+
+message Signed {
+  bytes body = 1;
+  bytes signature = 2;
+  bytes public_key = 3;
+}
+
+message NewDevice {
+  string name = 1;
+  bytes public_key = 2;
+  string FCM_token = 3;
+}
+
+message Link {
+  bytes prev = 1;
+  uint32 sequence_number = 2;
+  oneof body {
+    NewDevice new_device = 3;
+  }
+}

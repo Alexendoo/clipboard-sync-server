@@ -3,13 +3,13 @@ package routes
 import (
 	"bytes"
 	"crypto/sha256"
-	"database/sql"
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 
+	"github.com/Alexendoo/clipboard-sync-server/messages"
 	"github.com/Alexendoo/clipboard-sync-server/model"
+	"github.com/golang/protobuf/proto"
 	"golang.org/x/crypto/ed25519"
 )
 
@@ -37,103 +37,46 @@ func AddLink(w http.ResponseWriter, r *http.Request) {
 	reader := http.MaxBytesReader(w, r.Body, 10000)
 	body, err := ioutil.ReadAll(reader)
 	if err != nil {
-		// TODO: check resp badRequest(w)
+		badRequest(w)
 		return
 	}
 
-	var req linkRequest
-	err = json.Unmarshal(body, &req)
+	signed := &messages.Signed{}
+	err = proto.Unmarshal(body, signed)
 	if err != nil {
 		badRequest(w)
 		return
 	}
 
-	valid := len(req.PubKey) == ed25519.PublicKeySize &&
-		ed25519.Verify(req.PubKey, req.Link, req.Signature)
-	if !valid {
+	if !signed.Verify() {
 		forbidden(w)
-		log.Printf("invalid signature\n")
 		return
 	}
 
-	var link genericLink
-	err = json.Unmarshal(req.Link, &link)
+	link := &messages.Link{}
+	err = proto.Unmarshal(signed.Body, link)
 	if err != nil {
 		badRequest(w)
 		return
 	}
 
-	switch link.Type {
-	case "root":
-		addRoot(w, &link, &req)
-	case "new_device":
-		addNewDevice(w, &link, &req)
+	switch link.Body.(type) {
+	case *messages.Link_NewDevice:
+		addNewDevice(w, signed, link)
 	default:
 		badRequest(w)
 	}
 }
 
-func addRoot(w http.ResponseWriter, link *genericLink, req *linkRequest) {
-	if link.SeqNo != 0 {
-		badRequest(w)
+func addNewDevice(w http.ResponseWriter, signed *messages.Signed, link *messages.Link) {
+	if link.SequenceNumber == 0 {
+		addRootDevice(w, signed, link)
 		return
 	}
 
-	var newDevice newDeviceBody
-	err := json.Unmarshal(link.Body, &newDevice)
+	signatory, err := model.FindDevice(db, signed.PublicKey)
 	if err != nil {
 		badRequest(w)
-		return
-	}
-
-	if !bytes.Equal(req.PubKey, newDevice.PubKey) {
-		badRequest(w)
-		return
-	}
-
-	user := model.NewUser()
-	err = user.Save(db)
-	if err != nil {
-		serverError(w)
-		return
-	}
-
-	device := model.NewDevice(req.PubKey, newDevice.FCMToken, user.ID)
-	err = device.Save(db)
-	if err != nil {
-		serverError(w)
-		user.Delete(db)
-		return
-	}
-
-	savedLink := model.NewLink(req.Link, req.Signature, req.PubKey, user.ID, link.SeqNo)
-	err = savedLink.Save(db)
-	if err != nil {
-		serverError(w)
-		user.Delete(db)
-		device.Delete(db)
-		return
-	}
-
-	resp, _ := json.Marshal(&savedLink)
-	w.Write(resp)
-}
-
-func addNewDevice(w http.ResponseWriter, link *genericLink, req *linkRequest) {
-	var newDevice newDeviceBody
-	err := json.Unmarshal(link.Body, &newDevice)
-	if err != nil {
-		badRequest(w)
-		return
-	}
-
-	signatory, err := model.FindDevice(db, req.PubKey)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			badRequest(w)
-		} else {
-			serverError(w)
-		}
 		return
 	}
 
@@ -143,7 +86,7 @@ func addNewDevice(w http.ResponseWriter, link *genericLink, req *linkRequest) {
 		return
 	}
 
-	if link.SeqNo != lastLink.SeqNo+1 {
+	if link.SequenceNumber != lastLink.SeqNo+1 {
 		httpError(w, http.StatusConflict)
 		return
 	}
@@ -154,18 +97,59 @@ func addNewDevice(w http.ResponseWriter, link *genericLink, req *linkRequest) {
 		return
 	}
 
-	device := model.NewDevice(newDevice.PubKey, newDevice.FCMToken, signatory.UserID)
+	newDevice := link.Body.(*messages.Link_NewDevice).NewDevice
+
+	device := model.NewDevice(newDevice.PublicKey, newDevice.FCMToken, signatory.UserID)
 	err = device.Save(db)
 	if err != nil {
 		serverError(w)
 		return
 	}
 
-	savedLink := model.NewLink(req.Link, req.Signature, req.PubKey, signatory.UserID, link.SeqNo)
+	savedLink := model.NewLink(signed.Body, signed.Signature, signed.PublicKey, signatory.UserID, link.SequenceNumber)
 	err = savedLink.Save(db)
 	if err != nil {
 		serverError(w)
 		device.Delete(db)
+		return
+	}
+}
+
+func addRootDevice(w http.ResponseWriter, signed *messages.Signed, link *messages.Link) {
+	newDevice := link.Body.(*messages.Link_NewDevice).NewDevice
+
+	if !bytes.Equal(newDevice.PublicKey, signed.PublicKey) {
+		badRequest(w)
+		return
+	}
+
+	user := model.NewUser()
+	err := user.Save(db)
+	if err != nil {
+		serverError(w)
+		return
+	}
+
+	device := model.NewDevice(newDevice.PublicKey, newDevice.FCMToken, user.ID)
+	err = device.Save(db)
+	if err != nil {
+		serverError(w)
+		user.Delete(db)
+		return
+	}
+
+	savedLink := model.NewLink(
+		signed.Body,
+		signed.Signature,
+		signed.PublicKey,
+		user.ID,
+		link.SequenceNumber,
+	)
+	err = savedLink.Save(db)
+	if err != nil {
+		serverError(w)
+		device.Delete(db)
+		user.Delete(db)
 		return
 	}
 }

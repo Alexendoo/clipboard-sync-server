@@ -12,11 +12,11 @@ type Link struct {
 	SignedBy  []byte
 
 	UserID string
-	SeqNo  uint
+	SeqNo  uint32
 }
 
 // NewLink returns a new Link
-func NewLink(Body, Signature, SignedBy []byte, UserID string, SeqNo uint) *Link {
+func NewLink(Body, Signature, SignedBy []byte, UserID string, SeqNo uint32) *Link {
 	return &Link{Body, Signature, SignedBy, UserID, SeqNo}
 }
 
@@ -28,7 +28,7 @@ func LastLink(db *sql.DB, userid string) (*Link, error) {
 		Signature []byte
 		SignedBy  []byte
 		UserID    string
-		SeqNo     uint
+		SeqNo     uint32
 	)
 	err := row.Scan(
 		&Body,

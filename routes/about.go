@@ -1,14 +1,23 @@
 package routes
 
 import (
-	"io"
 	"net/http"
+
+	"github.com/Alexendoo/clipboard-sync-server/messages"
+	"github.com/golang/protobuf/proto"
 )
 
 // About exposes server information to clients
 func About(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, `{
-		"version": "0.1.0",
-		"sender_id": "303334042045"
-	}`)
+	info := &messages.ServerInfo{
+		SenderId: "303334042045",
+		Version:  "0.1.0",
+	}
+
+	bytes, err := proto.Marshal(info)
+	if err != nil {
+		panic(err)
+	}
+
+	w.Write(bytes)
 }

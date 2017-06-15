@@ -19,10 +19,8 @@ func Handler(_db *sql.DB) http.HandlerFunc {
 	router.HandleFunc("/chain", AddLink).
 		Methods(http.MethodPost)
 
-	router.HandleFunc("/invite/{device:src|dest}/{key}", InviteGet).
+	router.Handle("/invite/{key}", NewInviteHandler()).
 		Methods(http.MethodGet)
-	router.HandleFunc("/invite/{device:src|dest}/{key}", InvitePost).
-		Methods(http.MethodPost)
 
 	router.HandleFunc("/about", About).
 		Methods(http.MethodGet)
